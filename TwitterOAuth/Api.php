@@ -67,7 +67,7 @@ class Api {
     }
   }
 
-  function setToken($oauth_token, $oauth_token_secret)
+  function setTokens($oauth_token, $oauth_token_secret)
   {
 	if (!empty($oauth_token) && !empty($oauth_token_secret)) {
       $this->token = new OAuth\Consumer($oauth_token, $oauth_token_secret);

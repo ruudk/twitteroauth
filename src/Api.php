@@ -1,18 +1,19 @@
 <?php
 
+namespace TwitterOAuth;
+
+use TwitterOAuth\OAuth;
+
 /*
  * Abraham Williams (abraham@abrah.am) http://abrah.am
  *
  * The first PHP Library to support OAuth for Twitter's REST API.
  */
 
-/* Load OAuth lib. You can find it at http://oauth.net */
-require_once('OAuth.php');
-
 /**
  * Twitter OAuth class
  */
-class TwitterOAuth {
+class Api {
   /* Contains the last HTTP status code returned. */
   public $http_code;
   /* Contains the last API call. */
@@ -35,7 +36,7 @@ class TwitterOAuth {
   public $useragent = 'TwitterOAuth v0.2.0-beta2';
   /* Immediately retry the API call if the response was not successful. */
   //public $retry = TRUE;
-
+  public $token;
 
 
 
@@ -57,10 +58,19 @@ class TwitterOAuth {
    * construct TwitterOAuth object
    */
   function __construct($consumer_key, $consumer_secret, $oauth_token = NULL, $oauth_token_secret = NULL) {
-    $this->sha1_method = new OAuthSignatureMethod_HMAC_SHA1();
-    $this->consumer = new OAuthConsumer($consumer_key, $consumer_secret);
+    $this->sha1_method = new OAuth\SignatureMethod\HMACSHA1();
+    $this->consumer = new OAuth\Consumer($consumer_key, $consumer_secret);
     if (!empty($oauth_token) && !empty($oauth_token_secret)) {
-      $this->token = new OAuthConsumer($oauth_token, $oauth_token_secret);
+      $this->token = new OAuth\Consumer($oauth_token, $oauth_token_secret);
+    } else {
+      $this->token = NULL;
+    }
+  }
+
+  function setToken($oauth_token, $oauth_token_secret)
+  {
+	if (!empty($oauth_token) && !empty($oauth_token_secret)) {
+      $this->token = new OAuth\Consumer($oauth_token, $oauth_token_secret);
     } else {
       $this->token = NULL;
     }
@@ -78,8 +88,8 @@ class TwitterOAuth {
       $parameters['oauth_callback'] = $oauth_callback;
     } 
     $request = $this->oAuthRequest($this->requestTokenURL(), 'GET', $parameters);
-    $token = OAuthUtil::parse_parameters($request);
-    $this->token = new OAuthConsumer($token['oauth_token'], $token['oauth_token_secret']);
+    $token = OAuth\Util::parse_parameters($request);
+    $this->token = new OAuth\Consumer($token['oauth_token'], $token['oauth_token_secret']);
     return $token;
   }
 
@@ -113,9 +123,12 @@ class TwitterOAuth {
     if (!empty($oauth_verifier)) {
       $parameters['oauth_verifier'] = $oauth_verifier;
     }
-    $request = $this->oAuthRequest($this->accessTokenURL(), 'GET', $parameters);
-    $token = OAuthUtil::parse_parameters($request);
-    $this->token = new OAuthConsumer($token['oauth_token'], $token['oauth_token_secret']);
+    $request = $this->oAuthRequest($this->accessTokenURL(), 'POST', $parameters);
+    $token = OAuth\Util::parse_parameters($request);
+	if(empty($token['oauth_token']) || empty($token['oauth_token_secret']))
+		return array();
+	
+    $this->token = new OAuth\Consumer($token['oauth_token'], $token['oauth_token_secret']);
     return $token;
   }
 
@@ -134,8 +147,8 @@ class TwitterOAuth {
     $parameters['x_auth_password'] = $password;
     $parameters['x_auth_mode'] = 'client_auth';
     $request = $this->oAuthRequest($this->accessTokenURL(), 'POST', $parameters);
-    $token = OAuthUtil::parse_parameters($request);
-    $this->token = new OAuthConsumer($token['oauth_token'], $token['oauth_token_secret']);
+    $token = OAuth\Util::parse_parameters($request);
+    $this->token = new OAuth\Consumer($token['oauth_token'], $token['oauth_token_secret']);
     return $token;
   }
 
@@ -179,7 +192,7 @@ class TwitterOAuth {
     if (strrpos($url, 'https://') !== 0 && strrpos($url, 'http://') !== 0) {
       $url = "{$this->host}{$url}.{$this->format}";
     }
-    $request = OAuthRequest::from_consumer_and_token($this->consumer, $this->token, $method, $url, $parameters);
+    $request = OAuth\Request::from_consumer_and_token($this->consumer, $this->token, $method, $url, $parameters);
     $request->sign_request($this->sha1_method, $this->consumer, $this->token);
     switch ($method) {
     case 'GET':

@@ -3,6 +3,7 @@
     "type": "library",
     "description": "PHP 5.3 version of abraham/twitteroauth",
     "homepage": "http://github.com/ruudk/twitteroauth",
+    "minimum-stability": "dev",
     "authors": [
         {
             "name": "Ruud Kamphuis",

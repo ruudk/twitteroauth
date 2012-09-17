@@ -6,6 +6,22 @@ Api.php has a new function called setToken($oauth_token, $oauth_token_secret) to
 
 ===========
 
+Usage
+
+To install via composer, include:
+    
+    "ruudk/twitter-oauth": "*"
+
+in your composer.json file.
+
+Then, after including composer's automatically generated autoloader, create a new instance of the twitter API:
+
+    $twitter = new \TwitterOAuth\Api(arguments);
+
+When following the steps in the Documentation file, amend them to use this namespaced instanciation code or TwitterOAuth will not work.
+
+===========
+
 Abraham Williams | abraham@poseurte.ch | http://abrah.am | @abraham
 
 The first PHP library for working with Twitter's OAuth API.

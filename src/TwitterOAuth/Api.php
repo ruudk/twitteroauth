@@ -30,8 +30,10 @@ class Api {
   public $format = 'json';
   /* Decode returned json data. */
   public $decode_json = TRUE;
-  /* Contains the last HTTP headers returned. */
+  /* Contains information regarding the last transfer. */
   public $http_info;
+  /* Contains the last HTTP headers returned. */
+  public $response_headers;
   /* Set the useragnet. */
   public $useragent = 'TwitterOAuth v0.2.0-beta2';
   /* Immediately retry the API call if the response was not successful. */
@@ -220,7 +222,7 @@ class Api {
     curl_setopt($ci, CURLOPT_HTTPHEADER, $this->http_headers);
     curl_setopt($ci, CURLOPT_SSL_VERIFYPEER, $this->ssl_verifypeer);
     curl_setopt($ci, CURLOPT_HEADERFUNCTION, array($this, 'getHeader'));
-    curl_setopt($ci, CURLOPT_HEADER, FALSE);
+    curl_setopt($ci, CURLOPT_HEADER, TRUE);
 
     switch ($method) {
       case 'POST':
@@ -240,9 +242,44 @@ class Api {
     $response = curl_exec($ci);
     $this->http_code = curl_getinfo($ci, CURLINFO_HTTP_CODE);
     $this->http_info = array_merge($this->http_info, curl_getinfo($ci));
+    $header_string = substr($response, 0, $this->http_info['header_size']);
+    $body = substr($response, $this->http_info['header_size']);
+    $this->response_headers = $this->parseHeaders($header_string);
+
     $this->url = $url;
     curl_close ($ci);
-    return $response;
+    return $body;
+  }
+
+  /**
+   * Parse header string into array
+   * see: http://stackoverflow.com/questions/6368574/how-to-get-the-functionality-of-http-parse-headers-without-pecl
+   */
+  private function parseHeaders($raw_headers) {
+    $headers = array();
+    $key = '';
+
+    foreach(explode("\n", $raw_headers) as $i => $h) {
+      $h = explode(':', $h, 2);
+
+      if (isset($h[1])) {
+        $key = strtolower($h[0]);
+        if (!isset($headers[$key])) {
+          $headers[$key] = trim($h[1]);
+        } elseif (is_array($headers[$key])) {
+          $headers[$key] = array_merge($headers[$key], array(trim($h[1])));
+        } else {
+          $headers[$key] = array_merge(array($headers[$key]), array(trim($h[1])));
+        }
+      } else {
+        if (substr($h[0], 0, 1) == "\t") {
+          $headers[$key] .= "\r\n\t".trim($h[0]);
+        } elseif (!$key) {
+          $headers[0] = trim($h[0]);
+        }
+      }
+    }
+    return $headers;
   }
 
   /**
